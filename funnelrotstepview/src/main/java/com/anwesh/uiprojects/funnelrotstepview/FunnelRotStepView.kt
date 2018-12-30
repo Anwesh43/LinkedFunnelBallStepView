@@ -11,8 +11,10 @@ import android.graphics.Paint
 import android.graphics.Color
 import android.content.Context
 import android.app.Activity
+import android.util.Log
 
-val nodes : Int = 5
+val funnelNodes : Int = 5
+val ballNodes : Int = 3
 val lines : Int = 2
 val scGap : Float = 0.05f
 val scDiv : Double = 0.51
@@ -20,6 +22,8 @@ val sizeFactor : Float = 2.7f
 val strokeFactor : Int = 90
 val foreColor : Int = Color.parseColor("#2980b9")
 val backColor : Int = Color.parseColor("#BDBDBD")
+val ballColor : Int = Color.parseColor("#e74c3c")
+
 val DELAY : Long = 25
 
 fun Int.inverse() : Float = 1f / this
@@ -32,9 +36,10 @@ fun Float.updateScale(dir : Float, a : Int, b : Int) : Float = mirrorValue(a, b)
 fun Float.updatePos(s : Float, scale : Float) : Float = this + (s - this) * scale
 
 fun Canvas.drawFRSNode(i : Int, scale : Float, paint : Paint) {
+    //Log.d("drawing node", "$i drawn")
     val w : Float = width.toFloat()
     val h : Float = height.toFloat()
-    val gap : Float = w / (nodes + 1)
+    val gap : Float = w / (funnelNodes + 1)
     val size : Float = gap / sizeFactor
     val kSize : Float = size/2
     val sc1 : Float = scale.divideScale(0, 2)
@@ -58,6 +63,18 @@ fun Canvas.drawFRSNode(i : Int, scale : Float, paint : Paint) {
     restore()
 }
 
+fun Canvas.drawBallNode(scale : Float, paint : Paint) {
+    paint.color = ballColor
+    val w : Float = width.toFloat()
+    val h : Float = height.toFloat()
+    val gap : Float = w / (funnelNodes + 1)
+    val size : Float = gap / sizeFactor
+    val ballR : Float = size / 5
+    val ox : Float = -ballR
+    val dx : Float = w + ballR
+    drawCircle(ox.updatePos(dx, scale), h/2, ballR, paint)
+}
+
 class FunnelRotStepView(ctx : Context) : View(ctx) {
 
     private val paint : Paint = Paint(Paint.ANTI_ALIAS_FLAG)
@@ -77,10 +94,10 @@ class FunnelRotStepView(ctx : Context) : View(ctx) {
         return true
     }
 
-    data class State(var scale : Float = 0f, var dir : Float = 0f, var prevScale : Float = 0f) {
+    data class State(var scale : Float = 0f, var dir : Float = 0f, var prevScale : Float = 0f, var a : Int = 1, var b : Int = 1) {
 
         fun update(cb : (Float) -> Unit) {
-            scale += scale.updateScale(dir, lines, 1)
+            scale += scale.updateScale(dir, a, b)
             if (Math.abs(scale - prevScale) > 1) {
                 scale = prevScale + dir
                 dir = 0f
@@ -125,24 +142,31 @@ class FunnelRotStepView(ctx : Context) : View(ctx) {
         }
     }
 
-    data class FRSNode(var i : Int, val state : State = State()) {
+    open class Node(var i : Int = 0, var nodes : Int, var state : State = State(), var cb : (Canvas, Paint, Int, Float) -> Unit,
+                    var dfnNode : Node? = null) {
 
-        private var prev : FRSNode? = null
-        private var next : FRSNode? = null
+        protected var prev : Node? = null
+        protected var next : Node? = null
 
         init {
             addNeighbor()
         }
 
+
         fun addNeighbor() {
             if (i < nodes - 1) {
-                next = FRSNode(i + 1)
+                Log.d("adding neighbor for ", "$i")
+                next = Node(i = i + 1, nodes = nodes, cb = cb, dfnNode = dfnNode)
                 next?.prev = this
+            } else {
+                next = dfnNode
+                next?.prev = this
+                Log.d("next node is", "${next?.i}")
             }
         }
 
-        fun draw(canvas : Canvas, paint : Paint) {
-            canvas.drawFRSNode(i, state.scale, paint)
+        open fun draw(canvas : Canvas, paint : Paint) {
+            cb(canvas, paint, i, state.scale)
             next?.draw(canvas, paint)
         }
 
@@ -156,8 +180,8 @@ class FunnelRotStepView(ctx : Context) : View(ctx) {
             state.startUpdating(cb)
         }
 
-        fun getNext(dir : Int, cb : () -> Unit) : FRSNode {
-            var curr : FRSNode? = prev
+        fun getNext(dir : Int, cb : () -> Unit) : Node {
+            var curr : Node? = prev
             if (dir == 1) {
                 curr = next
             }
@@ -169,10 +193,19 @@ class FunnelRotStepView(ctx : Context) : View(ctx) {
         }
     }
 
+    class FRSNode : Node(nodes = funnelNodes, cb = {canvas, paint, i, scale ->
+        Log.d("drawing ", "$i node")
+        canvas.drawFRSNode(i, scale, paint)
+    }, dfnNode = BallNode())
+
+    class BallNode : Node(nodes = ballNodes, cb = {canvas, paint, i, scale ->
+        canvas.drawBallNode(scale, paint)
+    })
+
     data class FunnelRotStep(var i : Int) {
 
-        private val root : FRSNode = FRSNode(0)
-        private var curr : FRSNode = root
+        private var root : Node = FRSNode()
+        private var curr : Node = root
         private var dir : Int = 1
 
         fun draw(canvas : Canvas, paint : Paint) {
@@ -184,6 +217,7 @@ class FunnelRotStepView(ctx : Context) : View(ctx) {
                 curr = curr.getNext(dir) {
                     dir *= -1
                 }
+                cb(i, scl)
             }
         }
 
