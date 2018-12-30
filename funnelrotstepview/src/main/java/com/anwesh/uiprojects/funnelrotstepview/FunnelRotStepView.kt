@@ -188,4 +188,25 @@ class FunnelRotStepView(ctx : Context) : View(ctx) {
             curr.startUpdating(cb)
         }
     }
+
+    data class Renderer(var view : FunnelRotStepView) {
+        private val frs : FunnelRotStep = FunnelRotStep(0)
+        private val animator : Animator = Animator(view)
+
+        fun render(canvas : Canvas, paint : Paint) {
+            canvas.drawColor(backColor)
+            frs.draw(canvas, paint)
+            animator.animate {
+                frs.update {i, scl ->
+                    animator.stop()
+                }
+            }
+        }
+
+        fun handleTap() {
+            frs.startUpdating {
+                animator.start()
+            }
+        }
+    }
 }
