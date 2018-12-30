@@ -20,6 +20,7 @@ val sizeFactor : Float = 2.7f
 val strokeFactor : Int = 90
 val foreColor : Int = Color.parseColor("#2980b9")
 val backColor : Int = Color.parseColor("#BDBDBD")
+val DELAY : Long = 25
 
 fun Int.inverse() : Float = 1f / this
 fun Float.maxScale(i : Int, n : Int) : Float = Math.max(0f, this - i * n.inverse()).toFloat()
@@ -102,7 +103,7 @@ class FunnelRotStepView(ctx : Context) : View(ctx) {
             if (animated) {
                 cb()
                 try {
-                    Thread.sleep(50)
+                    Thread.sleep(DELAY)
                     view.invalidate()
                 } catch(ex : Exception) {
 
