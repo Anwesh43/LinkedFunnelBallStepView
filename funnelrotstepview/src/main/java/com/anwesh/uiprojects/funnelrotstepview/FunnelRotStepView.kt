@@ -28,6 +28,35 @@ fun Float.scaleFactor() : Float = Math.floor(this/scDiv).toFloat()
 fun Float.mirrorValue(a : Int, b : Int) : Float = ((1 - scaleFactor()) * a.inverse()) + (scaleFactor() * b.inverse())
 fun Float.updateScale(dir : Float, a : Int, b : Int) : Float = mirrorValue(a, b) * scGap * dir
 
+fun Float.updatePos(s : Float, scale : Float) : Float = this + (s - this) * scale
+
+fun Canvas.drawFRSNode(i : Int, scale : Float, paint : Paint) {
+    val w : Float = width.toFloat()
+    val h : Float = height.toFloat()
+    val gap : Float = w / (nodes + 1)
+    val size : Float = gap / sizeFactor
+    val kSize : Float = size/2
+    val sc1 : Float = scale.divideScale(0, 2)
+    val sc2 : Float = scale.divideScale(1, 2)
+    paint.color = foreColor
+    paint.strokeWidth = Math.min(w, h) / strokeFactor
+    paint.strokeCap = Paint.Cap.ROUND
+    val ox : Float = -size/4
+    val sx : Float = -size/2
+    save()
+    translate(gap * (i + 1), h/2)
+    rotate(90f * sc2)
+    for (j in 0..(lines - 1)) {
+        val sc : Float = sc1.divideScale(j, lines)
+        save()
+        scale(1f - 2 * j, 1f)
+        drawLine(ox, -size, ox, kSize, paint)
+        drawLine(ox, kSize, ox.updatePos(sx, sc), size, paint)
+        restore()
+    }
+    restore()
+}
+
 class FunnelRotStepView(ctx : Context) : View(ctx) {
 
     private val paint : Paint = Paint(Paint.ANTI_ALIAS_FLAG)
