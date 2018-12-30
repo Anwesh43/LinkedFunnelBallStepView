@@ -211,4 +211,12 @@ class FunnelRotStepView(ctx : Context) : View(ctx) {
             }
         }
     }
+
+    companion object {
+        fun create(activity : Activity) : FunnelRotStepView {
+            val view : FunnelRotStepView = FunnelRotStepView(activity)
+            activity.setContentView(view)
+            return view 
+        }
+    }
 }
