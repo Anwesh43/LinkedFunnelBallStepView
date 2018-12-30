@@ -20,3 +20,21 @@ val sizeFactor : Float = 2.7f
 val strokeFactor : Int = 90
 val foreColor : Int = Color.parseColor("#2980b9")
 val backColor : Int = Color.parseColor("#BDBDBD")
+
+class FunnelRotStepView(ctx : Context) : View(ctx) {
+
+    private val paint : Paint = Paint(Paint.ANTI_ALIAS_FLAG)
+
+    override fun onDraw(canvas : Canvas) {
+
+    }
+
+    override fun onTouchEvent(event : MotionEvent) : Boolean {
+        when (event.action) {
+            MotionEvent.ACTION_DOWN -> {
+
+            }
+        }
+        return true
+    }
+}
